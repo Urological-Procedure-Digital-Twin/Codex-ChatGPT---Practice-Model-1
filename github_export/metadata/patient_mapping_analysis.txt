@@ -1,0 +1,119 @@
+PATIENT MAPPING AND CURRENT PROCESSED SPLIT ANALYSIS
+Updated: 2026-09-21
+
+CONCLUSION
+Using the publication's Table I mapping supplied by the user, the current
+training set is Patient 2 and the current validation set is Patient 4.
+The p_003 test group can now be confidently associated with Patient 3 through
+its exact-image matches to Videos 4, 5, and 6.
+There is no confirmed patient overlap among the current processed splits.
+However, p001 and p006 remain unverified patient/case mappings, so complete
+patient independence of the entire test set is not yet established.
+
+SOURCE AND EVIDENCE STATUS
+Publication Table I, as supplied by the user:
+  Video 3 = Patient 2
+  Videos 4, 5, and 6 = Patient 3
+  Video 7 = Patient 4
+
+These are accepted publication-based mappings for this analysis, not guesses
+from video numbers. The publication title, DOI, and original table were not
+independently retrieved here; provenance is the user's supplied Table I content.
+The processed split memberships and exact-image links below were checked
+against the local manifests during this update.
+
+Evidence categories:
+1. Publication-based mapping: the three assignments supplied above.
+2. Verified local evidence: current sample counts and exact-image hash links.
+3. Supported association: p_003 -> Patient 3, combining categories 1 and 2.
+4. Unverified labels: p001 and p006; their numerical prefixes alone do not
+   establish correspondence to Patients 1 and 6 in the publication.
+
+CURRENT PROCESSED SPLITS (USED BY THE SAVED MODEL)
+Source: data/processed/lumen_baseline_256/processed_manifest.csv
+
+Split        Images  Image/video group              Patient association
+Train          311   video_3                        Patient 2 (Table I)
+Validation      99   video_7_pt1 and video_7_pt2      Patient 4 (Table I)
+Test           505   p_003_video_1/2/3              Patient 3 (image links + Table I)
+Test           100   p001_video_2                   Unverified
+Test           361   p006_video_1                   Unverified
+
+Totals: 311 train, 99 validation, 966 test; 1,376 processed pairs.
+Validation contains 18 images from video_7_pt1 and 81 from video_7_pt2.
+Both parts belong to the mapped Video 7 group, hence Patient 4.
+
+Known unique patient counts:
+  Train: 1 known patient, Patient 2.
+  Validation: 1 known patient, Patient 4.
+  Test: 1 confidently associated patient, Patient 3, plus two groups whose
+        publication-level patient/case identities remain unverified.
+The test set must not yet be described as three independently confirmed
+patients. The total distinct-patient count across its three groups is unresolved.
+
+WHY p_003 CAN NOW BE ASSOCIATED WITH PATIENT 3
+The original audit's pixel hashes link:
+  video_4 -> p_003_video_1: 233 matching image groups.
+  video_5 -> p_003_video_2: 160 matching image groups.
+  video_6 -> p_003_video_3: 112 matching image groups.
+Total: 505 matches, covering all 505 current p_003 test images.
+
+Table I assigns all three source videos to Patient 3. Therefore the chain is:
+  p_003 test image = matching Video 4/5/6 image -> Patient 3.
+This supports a confident Patient 3 association for the whole p_003 test group,
+not merely an inference from the digits 003. The matching source copies were
+in the original train/validation data, but those copies are excluded from the
+CURRENT processed train/validation sets.
+
+CURRENT PATIENT OVERLAP AND LEAKAGE ASSESSMENT
+Confirmed patient assignments by split are disjoint:
+  Train {Patient 2}; validation {Patient 4}; identified test portion {Patient 3}.
+Thus there is NO CONFIRMED patient overlap among current processed splits.
+The previously checked current manifests also have no shared known source
+components or exact original-image pixel hashes across splits.
+
+This does not establish zero possible patient leakage for all 966 test images.
+The p001 and p006 groups could only be declared different patients from 2 and 4
+once their code-to-publication-patient mapping is verified. Their names suggest
+IDs 001 and 006, but suggestion alone is not sufficient evidence.
+The existing manifest labels patient_001 and patient_006 were derived from
+filenames; those generated labels do not independently verify patient identity.
+
+The identified portion of the current partition is now supported as
+patient-separated: Patient 2 for training, Patient 4 for validation, Patient 3
+for part of testing. Complete test-set patient separation remains unresolved
+only with respect to the unverified groups. Exact-match absence cannot by
+itself exclude different recordings from the same patient.
+
+Each of training and validation contains only one known patient. Consequently,
+hundreds of frames do not mean hundreds of independent patients, and validation
+performance remains based on a very small patient sample even without overlap.
+
+ORIGINAL DATASET VERSUS CURRENT PROCESSED DATA
+The original splits mixed frames from the same videos across train/validation.
+With the supplied mapping, the original train and validation each included
+Patients 2, 3, and 4. Exact copies of Patient 3 images also appeared in test.
+That original partition had confirmed patient overlap and duplicate leakage.
+It is not the partition used by the saved baseline model.
+The current processed data retains only Patient 2 in train and Patient 4 in
+validation, and keeps the 505 Patient 3 images solely in test.
+
+EARLIER LOCAL DOCUMENTATION SEARCH (STILL VALID)
+The original lumen_dataset.zip and extracted dataset contained only 4,362 PNG
+files, with no README, metadata tables, documentation, ZIP comments, or PNG/EXIF
+identity fields. All archive/extracted file hashes matched in the earlier search.
+The lack of bundled metadata remains true, but the new externally supplied
+Table I information resolves the earlier uncertainty for Videos 3 through 7.
+This updated report supersedes earlier statements that video_3 and video_7
+patient identities were unknown. Other historical reports were not edited.
+
+WHAT REMAINS TO VERIFY
+Obtain authoritative mappings for p001_video_2 and p006_video_1 to the
+publication's anonymized patient/case identifiers, including confirmation that
+they are not Patients 2 or 4. No real names or personal identifiers are needed.
+No mapping for these remaining groups has been assumed in this report.
+
+CHANGES MADE
+Only metadata/patient_mapping_analysis.txt was updated. Dataset files,
+manifests, split assignments, model code, and model weights were unchanged.
+No retraining was performed.

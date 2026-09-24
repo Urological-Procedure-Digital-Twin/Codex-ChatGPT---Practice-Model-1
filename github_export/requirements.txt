@@ -1,0 +1,6 @@
+# Direct dependencies recorded from the working Python 3.11 environment.
+# See README.md for the CUDA 11.8 PyTorch installation used on this computer.
+numpy==1.24.3
+Pillow==9.4.0
+matplotlib==3.7.2
+torch==2.7.1

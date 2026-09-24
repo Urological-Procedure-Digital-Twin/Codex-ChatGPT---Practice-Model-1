@@ -1,0 +1,82 @@
+CURRENT PROOF-OF-CONCEPT MODEL: VERSION 2
+Finalized: 2026-09-21
+
+Selected checkpoint: models/unet_v2_best.pt
+Best checkpoint epoch: 8, selected by highest Version 2 validation Dice.
+This existing checkpoint is the current proof-of-concept model. No model was
+retrained, modified, renamed, or deleted during finalization.
+
+PURPOSE AND INTERFACE
+Purpose: binary semantic segmentation of the lumen in ureteroscopy images.
+This is an initial research component, not the final digital twin. It does not
+predict irrigation flow or intrarenal pressure and is not clinically validated.
+Input: an RGB ureteroscopy image, resized to 256x256 with bilinear interpolation
+and normalized to float32 [0,1]; PyTorch input shape is N x 3 x 256 x 256.
+Output: a 256x256 predicted lumen mask. Apply sigmoid to model logits, then
+threshold probabilities at >=0.5: lumen=1, background=0. No postprocessing.
+Architecture: small U-Net, 121,177 parameters, encoder channels 8/16/32 with a
+64-channel bottleneck, skip connections, and group normalization.
+
+TRAINING DATA AND SETTINGS
+Training: 311 image-mask pairs from video_3, Patient 2.
+Validation: 99 pairs from both video_7 parts, Patient 4.
+Test: 966 pairs: p_003=505, p001=100, p006=361.
+Patient 2/4 mappings use the publication Table I information supplied by the
+user. p_003 is associated with Patient 3 through exact-image matches to the
+publication-mapped Videos 4, 5, and 6.
+Uses the existing processed split manifest and binary masks. Seed 42,
+8 epochs, batch size 4, Adam learning rate 0.001, and equal-weight BCE plus
+soft Dice loss. Trained on an NVIDIA RTX 3050 Laptop GPU.
+
+TRAINING AUGMENTATION ONLY
+- Random rotations between -7.5 and +7.5 degrees, applied identically to image
+  and mask. Bilinear interpolation for images; nearest-neighbor for masks.
+  Fixed canvas and zero fill; masks remain binary.
+- Brightness and contrast factors sampled independently from 0.9 to 1.1.
+- A 20% chance of mild Gaussian blur with radius 0.3-0.7 pixels, image only.
+Validation and test images receive no augmentation.
+
+VERSION 2 PERFORMANCE
+                          Mean Dice       Mean IoU
+Validation (99 images)      0.508537        0.358846
+Test (966 images)           0.542266        0.403895
+Metrics are equally averaged per image for foreground segmentation at the
+fixed 0.5 threshold. They are not averages across independent patients.
+
+KNOWN LIMITATIONS AND OBSERVED ERRORS
+- p001 and p006 are filename-derived groups whose publication-level patient/
+  case identities remain unverified. Complete patient independence cannot be
+  confirmed, although known source overlap and exact duplicates were removed.
+- Training and validation each represent only one known patient. Nearby video
+  frames are correlated; results do not establish broad patient generalization.
+- Small and partially obscured lumen regions may be missed, fragmented,
+  enlarged, or poorly localized. For 52 test images with annotated lumen area
+  <=2% of the processed image, Version 2 mean Dice was only 0.2373; 5 had zero
+  overlap. This area cutoff is descriptive, not a clinical size measurement.
+- Border false positives, blur/lighting sensitivity, and annotation ambiguity
+  remain. Augmentation helped many frames but did not consistently solve these
+  problems. Ground-truth binarization assumes bright mask pixels denote lumen;
+  resizing can alter aspect ratio and does not repair original annotations.
+- Version 2 improved test metrics over Baseline, but its validation metrics were
+  slightly lower. The test set was repeatedly examined during development and
+  informed version selection; these are exploratory results, not a fresh final
+  evaluation. Independent patient-verified validation is still needed.
+
+WHY VERSION 3 WAS NOT SELECTED
+Version 3 tested Tversky loss with alpha=0.4 for false positives and beta=0.6
+for false negatives, keeping the other Version 2 settings fixed. It improved
+validation Dice to 0.5599, but reduced test Dice to 0.4174 and test IoU to
+0.3047. Test foreground recall fell from Version 2's 56.78% to 37.08%, and
+zero-overlap test images increased from 21 to 77. It therefore did not improve
+test-set lumen detection consistency and was not selected as the current model.
+
+PRESERVED EXPERIMENTS AND REFERENCES
+Baseline: models/baseline_unet_best.pt (retained unchanged).
+Version 3: models/unet_v3_best.pt (retained unchanged).
+Architecture: src/models/unet.py
+Version 2 pipeline: src/models/train_unet_v2.py
+Settings/results: metadata/version2/training_config.json and training_summary.json
+Group comparison: metadata/group_performance_comparison.csv
+Version 3 comparison: metadata/version3/model_comparison.csv
+Patient mapping: metadata/patient_mapping_analysis.txt
+No datasets, split assignments, or trained weights were changed.
