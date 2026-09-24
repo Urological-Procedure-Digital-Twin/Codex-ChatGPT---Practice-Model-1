@@ -1,0 +1,130 @@
+VERSION 3: TVERSKY LOSS EXPERIMENT
+
+Conclusion
+The new loss improved validation performance on Patient 4, but did NOT improve
+test-set lumen detection consistently in this fixed 8-epoch experiment. All
+three test groups performed worse than Version 2. Foreground recall fell and
+more test images had no overlap with the annotated lumen. Earlier models are
+preserved; no checkpoint was replaced or selected using test scores.
+
+The one experimental change
+Replaced the entire 0.5*BCE + 0.5*soft-Dice objective with mean soft Tversky loss:
+  loss = mean over images of
+         1 - (TP + 1e-6) / (TP + 0.4*FP + 0.6*FN + 1e-6).
+TP, FP, and FN use sigmoid probabilities during optimization. In this code,
+alpha=0.4 weights false positives and beta=0.6 weights false negatives. The
+false-negative coefficient is 1.5 times the false-positive coefficient, a
+moderate asymmetry close to equal weights. These values were fixed before
+training. There is no BCE term, focal exponent, or additional class weighting.
+This weighting expresses a training preference, not a guarantee of improved
+recall on unseen images.
+
+Method reference: Salehi, Erdogmus, and Gholipour, Tversky loss function for
+image segmentation using 3D fully convolutional deep networks (2017):
+https://arxiv.org/abs/1706.05721
+The 0.4/0.6 choice is this experiment's conservative setting, not a claim of
+optimal settings for ureteroscopy from that publication.
+
+Everything retained from Version 2
+- Same 121,177-parameter SmallUNet, initialized afresh with seed 42.
+- Same AugmentedLumenDataset imported directly from the Version 2 code.
+  Rotation +/-7.5 degrees, brightness and contrast 0.9-1.1, blur probability
+  20% with radius 0.3-0.7. Paired geometry and nearest-neighbor mask rotation.
+- Same processed 256x256 data, normalization, and binary masks.
+- Same 311 training, 99 validation, and 966 test images and manifest hash.
+- Same training order and independent augmentation RNG; unchanged validation
+  and test inputs, with no augmentation.
+- Same Adam settings, learning rate 0.001, batch size 4, gradient clipping,
+  deterministic configuration, and CUDA device.
+- Exactly 8 epochs; same fixed 0.5 prediction threshold, per-image Dice/IoU,
+  and checkpoint selection by highest validation Dice.
+Loss magnitudes are not directly comparable with previous BCE+Dice curves.
+
+Checks
+Tests verified the Tversky perfect/disjoint cases, stronger FN penalty, and
+finite gradients for empty/full targets. Existing augmentation checks passed.
+A one-epoch smoke test used 8 training and 4 validation samples, without using
+test labels. Checkpoint saving/reloading passed before full training.
+After training, architecture shapes, optimizer parameter groups, augmentation,
+seed, batch size, learning rate, epoch count, input manifest, splits, and
+threshold matched Version 2. All 966 test IDs matched.
+Baseline/V2 weights, code, configuration, history, and summary hashes remained
+unchanged. Re-evaluated Baseline/V2 Dice and IoU matched their saved results.
+
+OVERALL RESULTS
+Model       Best epoch  Validation Dice  Validation IoU  Test Dice  Test IoU
+Baseline        6          0.531291         0.381258       0.455772   0.336314
+Version 2       8          0.508537         0.358846       0.542266   0.403895
+Version 3       5          0.559938         0.407063       0.417371   0.304690
+
+Version 3 minus Version 2:
+  Validation Dice +0.051401; validation IoU +0.048216.
+  Test Dice -0.124895; test IoU -0.099205.
+Checkpoint epoch 5 was retained because it had the highest validation Dice,
+even though epoch 8 had a slightly higher validation IoU. Selection did not
+change after viewing test performance.
+
+GROUP RESULTS: each pair is mean Dice / mean IoU
+Group                 N    Baseline           Version 2          Version 3
+p_003                505   0.384778/0.274550  0.526822/0.379559  0.351996/0.243110
+p001                 100   0.303710/0.197257  0.389217/0.277818  0.165684/0.098989
+p006                 361   0.597208/0.461235  0.606266/0.472862  0.578542/0.447815
+Validation Patient 4  99   0.531291/0.381258  0.508537/0.358846  0.559938/0.407063
+
+DID THE LOSS RECOVER MISSED LUMEN PIXELS?
+Additional diagnostics were computed after checkpoint selection. They were not
+used as optimization objectives, selection criteria, or threshold adjustments.
+Recall is pooled TP/(TP+FN), precision is pooled TP/(TP+FP); these are pixel-
+weighted diagnostics, unlike the mean per-image Dice/IoU reported above.
+
+All 966 test images, Version 2 -> Version 3:
+  Foreground recall: 56.78% -> 37.08%.
+  Foreground precision: 58.75% -> 53.41%.
+  False-negative pixels: 2,391,794 -> 3,482,101.
+  False-positive pixels: 2,206,037 -> 1,790,063.
+  Images with zero overlap: 21 -> 77.
+  Per-image Dice: 256 improved, 692 worsened, 18 unchanged.
+Thus V3 predicted fewer extra pixels in total but missed substantially more
+true lumen pixels. Its intended recall benefit did not materialize on test.
+
+Small-opening subset (52 test images; annotated area <=2% of 256x256 image):
+  Mean Dice: 0.237272 -> 0.271337.
+  Pooled recall: 62.04% -> 45.71%.
+  False-negative pixels: 18,529 -> 26,500.
+  False-positive pixels: 212,680 -> 129,433.
+  Zero-overlap images: 5 -> 8.
+The modest Dice gain does not mean more consistent small-lumen detection.
+Fewer false positives improve the overlap score, while lower recall and more
+zero-overlap cases show that missed-lumen behavior was not solved. The 2% area
+cutoff is descriptive, not a clinical measurement of lumen diameter.
+
+Validation Patient 4 did improve: pooled recall 69.25% -> 71.33%, precision
+41.74% -> 47.69%, and mean Dice 0.5085 -> 0.5599. This benefit did not transfer
+to the three test groups. Partially obstructed images have no systematic
+obstruction labels, so a separate obstruction benefit is not established.
+
+Limits
+This is one seed and one fixed training budget. Training and validation each
+represent one known patient. p_003 is linked to Patient 3 by the supplied
+publication mapping and exact-image matches; p001/p006 patient mappings remain
+unverified. Nearby video frames are correlated, and test images have already
+been inspected during exploratory analysis. These results do not establish
+statistical significance or that Tversky loss is unsuitable in all settings.
+No further loss tuning, additional epochs, or other model changes were made.
+
+Saved outputs
+models/unet_v3_best.pt
+src/models/train_unet_v3.py
+metadata/version3/training_results.csv
+metadata/version3/training_config.json
+metadata/version3/training_summary.json
+metadata/version3/training_curves.png
+metadata/version3/model_comparison.csv and model_comparison.png
+metadata/version3/group_performance_comparison.csv
+metadata/version3/detection_diagnostics.csv
+metadata/version3/test_metrics_per_image.csv
+metadata/version3/validation_metrics_per_image.csv
+
+Run commands (existing outputs are protected from overwrite):
+  .venv\Scripts\python.exe src/models/train_unet_v3.py --smoke
+  .venv\Scripts\python.exe src/models/train_unet_v3.py

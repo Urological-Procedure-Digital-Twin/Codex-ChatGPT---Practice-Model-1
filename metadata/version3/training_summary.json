@@ -1,0 +1,34 @@
+{
+  "best_epoch": 5,
+  "epochs_completed": 8,
+  "elapsed_seconds": 207.11643229999993,
+  "checkpoint": "models/unet_v3_best.pt",
+  "comparison": [
+    {
+      "experiment": "Baseline",
+      "best_epoch": 6,
+      "validation_dice": 0.5312911825950699,
+      "validation_iou": 0.38125750633201216,
+      "test_dice": 0.45577218623636157,
+      "test_iou": 0.3363139375493048
+    },
+    {
+      "experiment": "Version 2",
+      "best_epoch": 8,
+      "validation_dice": 0.5085371299223467,
+      "validation_iou": 0.35884620776080123,
+      "test_dice": 0.5422655862156402,
+      "test_iou": 0.40389467158410736
+    },
+    {
+      "experiment": "Version 3",
+      "best_epoch": 5,
+      "validation_dice": 0.5599377661040335,
+      "validation_iou": 0.4070626238379816,
+      "test_dice": 0.4173706231456694,
+      "test_iou": 0.3046898828212552
+    }
+  ],
+  "protected_artifacts_unchanged": true,
+  "smoke_evaluation_uses_validation": false
+}
